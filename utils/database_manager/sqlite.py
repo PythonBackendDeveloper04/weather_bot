@@ -54,6 +54,19 @@ class Database:
         """
         return self.execute(sql, fetchall=True)
 
+    # db.py
+    def select_user(self, telegram_id):
+        sql = "SELECT * FROM Users WHERE telegram_id = ?"
+        result = self.execute(sql, parameters=(telegram_id,), fetchone=True)
+        if result:
+            return {
+                "id": result[0],
+                "telegram_id": result[1],
+                "region": result[2],
+                "time": result[3],
+            }
+        return None
+
     def update_user_fullname(self, email, id):
 
         sql = f"""

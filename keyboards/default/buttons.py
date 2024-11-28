@@ -2,7 +2,6 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder
 def region_keyboard():
     btn = ReplyKeyboardBuilder()
     regions = ["Toshkent", "Andijon", "Buxoro","Guliston","Jizzax","Qarshi","Navoiy","Namangan","Nukus","Samarqand","Termez","Xorazm","Farg'ona"]
-
     for i in regions:
         btn.button(text=i)
     btn.adjust(1)
@@ -19,7 +18,6 @@ def time_keyboard():
 def menu_keyboard():
     btn = ReplyKeyboardBuilder()
     btn.button(text="⛅️ Bugungi ob-havo")
-    btn.button(text="📉 Haftalik ma'lumot")
     btn.button(text="⚙️ Botni sozlash")
     btn.button(text="✉️ Murojaat")
     btn.adjust(2)

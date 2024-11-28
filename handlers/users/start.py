@@ -1,41 +1,67 @@
 from loader import dp, bot, db
-from aiogram.filters import CommandStart,Command
+from aiogram.filters import CommandStart
 from aiogram import types,F
 from keyboards.default.buttons import region_keyboard, time_keyboard, menu_keyboard
 from keyboards.inline.buttons import btn
 from aiogram.fsm.context import FSMContext
-from states.mystates import Form
-from utils.db_api import sqlite
-from datetime import datetime, timedelta
-import logging
+from states.states import Form
+from datetime import datetime
 import requests
-from data.config import WEATHER_API_KEY,RAPIDAPIHOST
+from data.config import WEATHER_API_KEY
+
 async def get_weather_data(region):
-    # Ob-havo ma'lumotlarini olish logikasi
-    return f"""<b>🕹Oʻzbekiston {region}</b>
-                
-📆 Bugun, <b>23-Sentabr 14:44</b>
+    url = "http://api.weatherstack.com/current"
+    params = {
+        "access_key": WEATHER_API_KEY,
+        "query": region,
+        "units": "m",
+    }
+    response = requests.get(url, params=params)
+    data = response.json()
 
-☀️ Ochiq️ havo, <b>+34°...+22°</b>
+    if response.status_code == 200:
+        description = data['current']['weather_descriptions'][0].capitalize()
+        temp = data['current']['temperature']
+        temp_min = temp - 5
+        temp_max = temp + 5
+        humidity = data['current']['humidity']
+        wind_speed = data['current']['wind_speed']
+        wind_dir = data['current']['wind_degree']
+        pressure = data['current']['pressure']
 
-🏠 Hozir:️ <b>+33° , 2.06 m/s</b>
+        def get_uzbek_month_name(month_num):
+            months = {
+                1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel", 5: "May", 6: "Iyun",
+                7: "Iyul", 8: "Avgust", 9: "Sentabr", 10: "Oktyabr", 11: "Noyabr", 12: "Dekabr"
+            }
+            return months.get(month_num, "")
 
-⛅ Tong: <b>+22°</b>
-🌞 Kunduzi: <b>+33°</b>
-🌚 Kechasi:️ <b>+27°</b>
+        now = datetime.now()
+        month_name = get_uzbek_month_name(now.month)
 
-☁️ Bulutlilik: <b>0 %</b>
-💧Namlik: <b>17 %</b>
-🌬 Shamol: <b>4.43 m/s</b>
-🌊 Shamol yo'nalishi: <b>G'arbiy, g'arbi-janub</b>
-🌫 Bosim: <b>1012 hPa</b>
+        weather_message = f"""
+            <b>🕹 Oʻzbekiston {region}</b>
 
-🌙 Oy: <b>🌔 Qisqarayotgan oy</b>
-🌕 Oy chiqishi: <b>21:49</b>
-🌑 Oy botishi: <b>12:31</b>
+📆 Bugun, <b>{now.day}-{month_name} {now.strftime('%H:%M')}</b>
+☀️ {description} havo, <b>+{temp_max}°...+{temp_min}°</b>
 
-⛅ Quyosh chiqishi: <b>06:19</b>
-🌥 Quyosh botishi: <b>18:26</b>"""
+🏠 Hozir:️ <b>+{temp}° , {wind_speed} m/s</b>
+
+⛅ Tong: <b>+{temp_min}°</b>
+🌞 Kunduzi: <b>+{temp_max}°</b>
+🌚 Kechasi:️ <b>+{temp - 2}°</b>
+
+☁️ Bulutlilik: <b>{data['current']['cloudcover']} %</b>
+💧 Namlik: <b>{humidity} %</b>
+🌬 Shamol: <b>{wind_speed} m/s</b>
+🌊 Shamol yo'nalishi: <b>{wind_dir}°</b>
+🌫 Bosim: <b>{pressure} hPa</b>
+        """
+        return weather_message
+    else:
+        return "Ob-havo ma'lumotlarini olishda xatolik yuz berdi."
+
+
 async def send_message(user_id, region):
     weather_data = await get_weather_data(region)
     await bot.send_message(user_id, weather_data)
@@ -59,10 +85,28 @@ Bot orqali siz, hududingizdagi 2 xil obhavo ma'lumotini bilishingiz mumkin
 """
 
 @dp.message(CommandStart())
-async def start(message:types.Message,state:FSMContext):
-    await message.answer(text.format(message.from_user.first_name))
-    await message.answer("Qaysi tumandansiz?",reply_markup=region_keyboard())
-    await state.set_state(Form.region)
+async def start(message: types.Message, state: FSMContext):
+    # Foydalanuvchini bazadan tekshirish
+    user_data = db.select_user(message.from_user.id)
+    print(user_data)
+    if user_data:
+        # Foydalanuvchi allaqachon ro'yxatdan o'tgan bo'lsa
+        region = user_data["region"]
+        time = user_data["time"]
+        await message.answer(
+            f"Assalomu alaykum, {message.from_user.first_name}!\n"
+            f"Siz allaqachon quyidagi ma'lumotlarni saqlagansiz:\n"
+            f"📍 Manzil: <b>{region}</b>\n"
+            f"⏰ Vaqt: <b>{time}</b>\n\n"
+            f"Qo'shimcha sozlamalar uchun '⚙️ Botni sozlash' tugmasidan foydalanishingiz mumkin.",
+            reply_markup=menu_keyboard(),
+        )
+    else:
+        # Agar foydalanuvchi bazada bo'lmasa, yangi ma'lumotlarni so'rash
+        await message.answer(text.format(message.from_user.first_name))
+        await message.answer("Qaysi tumandansiz?", reply_markup=region_keyboard())
+        await state.set_state(Form.region)
+
 
 @dp.message(lambda message: message.text in ["Toshkent", "Andijon", "Buxoro","Guliston","Jizzax","Qarshi","Navoiy","Namangan","Nukus","Samarqand","Termez","Xorazm","Farg'ona"],Form.region)
 async def process_region(message: types.Message, state: FSMContext):
@@ -109,39 +153,3 @@ async def settings(message:types.Message):
 @dp.message(F.text == "✉️ Murojaat")
 async def murojaat(message:types.Message):
     await message.answer("🤖Bot faoliyati boʻyicha taklif yoki savollaringiz boʻlsa, bemalol Administrator ga yozishingiz mumkin.😉",reply_markup=btn.as_markup())
-
-@dp.message(F.text=="📉 Haftalik ma'lumot")
-async def haftalik_ob_havo(message:types.Message):
-    users_data = db.select_all_user()
-    for id, telegram_id, region, time in users_data:
-        if message.from_user.id == telegram_id:
-            url = "https://open-weather-map27.p.rapidapi.com/weather"
-
-            querystring = {"q": region, "units": "metric"}  # Shahar va o'lchov birligini qo'shish
-
-            headers = {
-                "x-rapidapi-key": "6d6ecef7e9mshd3be8d28211f6afp12e196jsnf36f9bf90211",
-                "x-rapidapi-host": "open-weather-map27.p.rapidapi.com"
-            }
-
-            response = requests.get(url, headers=headers, params=querystring)
-
-            if response.status_code == 200:
-                data = response.json()
-                weather_info = [f"🕹 Oʻzbekiston Surxondaryo Viloyati Termiz Tumani\n"]
-
-                # Ma'lumotlarni olish
-                description = data['weather'][0]['description'].capitalize()
-                temp = data['main']['temp']
-                temp_min = data['main']['temp_min']
-                temp_max = data['main']['temp_max']
-                rain_chance = data.get('pop', 0) * 100  # Yog'ish ehtimolligini olish (agar mavjud bo'lsa)
-
-                # Natijalarni formatlash
-                weather_info.append(f"☀️ {description} havo, +{temp_max:.0f}°...+{temp_min:.0f}°\n"
-                                    f"☔️ Yog'ish ehtimolligi: {rain_chance:.0f}%\n")
-
-                await message.answer("\n".join(weather_info))
-            else:
-                await message.answer(
-                    f"Ob-havo ma'lumotlarini olishda xato yuz berdi. Status kod: {response.status_code}\nXato: {response.text}")
