@@ -73,9 +73,13 @@ class Database:
         UPDATE Users SET fullname=? WHERE id=?
         """
         return self.execute(sql, parameters=(email, id), commit=True)
-    def update_user_info(self, time, telegram_id):
+    def update_user_time(self, time, telegram_id):
 
         sql = f"""
         UPDATE Users SET time=? WHERE telegram_id=?
         """
         return self.execute(sql, parameters=(time, telegram_id), commit=True)
+
+    def update_user_location(self,region,telegram_id):
+        sql = f"""UPDATE Users SET region=? WHERE telegram_id = ?"""
+        return self.execute(sql,parameters=(region,telegram_id,),commit=True)

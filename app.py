@@ -19,7 +19,7 @@ async def main():
             db.users_table()
         except Exception as e:
             print(e)
-        scheduler.add_job(scheduled_job, CronTrigger(hour="*"))
+          scheduler.add_job(scheduled_job, CronTrigger(hour="*"))
         scheduler.start()
         await dp.start_polling(bot)
     finally:
@@ -27,4 +27,3 @@ async def main():
 if __name__=='__main__':
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     asyncio.run(main())
-    asyncio.get_event_loop().run_forever()
