@@ -1,4 +1,4 @@
-from loader import bot, dp, db,scheduler,app
+from loader import bot, dp, db,scheduler
 import handlers,middlewares
 from utils.notify_admins import start,shutdown
 from aiogram.types.bot_command_scope_all_private_chats import BotCommandScopeAllPrivateChats
