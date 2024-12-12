@@ -1,4 +1,4 @@
-from loader import bot, dp, db,scheduler
+from loader import bot, dp, db,scheduler,app
 import handlers,middlewares
 from utils.notify_admins import start,shutdown
 from aiogram.types.bot_command_scope_all_private_chats import BotCommandScopeAllPrivateChats
@@ -8,6 +8,7 @@ import sys
 import asyncio
 from apscheduler.triggers.cron import CronTrigger
 from handlers.users.start import scheduled_job
+import os
 
 async def main():
     try:
@@ -19,7 +20,7 @@ async def main():
             db.users_table()
         except Exception as e:
             print(e)
-          scheduler.add_job(scheduled_job, CronTrigger(hour="*"))
+        scheduler.add_job(scheduled_job, CronTrigger(hour="*"))
         scheduler.start()
         await dp.start_polling(bot)
     finally:
