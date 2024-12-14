@@ -9,8 +9,6 @@ import asyncio
 from apscheduler.triggers.cron import CronTrigger
 from handlers.users.start import scheduled_job
 import os
-os.environ['TZ'] = 'Asia/Tashkent'
-
 
 async def main():
     try:
