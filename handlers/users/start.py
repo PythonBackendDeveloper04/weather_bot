@@ -36,6 +36,7 @@ async def get_weather_data(region):
             "Snow": "Qor",
             "Thunderstorm": "Momaqaldiroq",
             "Fog": "Qalin tuman",
+            "Smoke":"Tutun",
 
         }
 
@@ -150,9 +151,10 @@ async def process_time(message: types.Message, state: FSMContext):
 
 @dp.message(F.text=="⛅️ Bugungi ob-havo")
 async def bugungi_ob_havo(message:types.Message):
-    users_data = db.select_all_user()
-    for id, telegram_id, region, time in users_data:
-        await send_message(telegram_id, region)
+    user_data = db.select_user(message.from_user.id)
+    telegram_id = user_data['telegram_id']
+    region = user_data['region']
+    await send_message(telegram_id,region)
 
 @dp.message(F.text=="⚙️ Botni sozlash")
 async def settings(message:types.Message):
